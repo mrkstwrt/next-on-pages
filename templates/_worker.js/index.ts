@@ -131,10 +131,12 @@ export default {
     const { pathname } = new URL(request.url);
     const routes = routesMatcher({ request }, __CONFIG__.routes);
 
+    const requestWithEnv = new Request(request, { env } as RequestInit);
+
     for (const route of routes) {
       if ("middlewarePath" in route && route.middlewarePath in __MIDDLEWARE__) {
         return await __MIDDLEWARE__[route.middlewarePath].entrypoint.default(
-          request,
+          requestWithEnv,
           context
         );
       }
@@ -152,10 +154,10 @@ export default {
       }
 
       if (found) {
-        return entrypoint.default(request, context);
+        return entrypoint.default(requestWithEnv, context);
       }
     }
 
-    return env.ASSETS.fetch(request);
+    return env.ASSETS.fetch(requestWithEnv);
   },
 } as ExportedHandler<{ ASSETS: Fetcher }>;
