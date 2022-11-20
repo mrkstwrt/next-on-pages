@@ -223,8 +223,8 @@ const transform = async ({
           let contents = await readFile(functionFile, "utf8");
           contents = contents.replace(
             // TODO: This hack is not good. We should replace this with something less brittle ASAP
-            /Object.defineProperty\(globalThis,\s*"__import_unsupported",\s*{[\s\S]*configurable:\s*([^,}]*).*}\s*\)/gm,
-            "true"
+            /(Object.defineProperty\(globalThis,\s*"__import_unsupported",\s*{[\s\S]*?configurable:\s*)([^,}]*)(.*}\s*\))/gm,
+            "$1true$3"
           );
 
           if (experimentalMinify) {
@@ -378,13 +378,23 @@ const transform = async ({
     }
 
     for (const entry of functionsEntries) {
-      if (`pages/${name}` === entry?.name) {
+      if (
+        `pages/${name}` === entry?.name ||
+        `app${name !== "index" ? `/${name}` : ""}/page` === entry?.name
+      ) {
         hydratedFunctions.set(name, { matchers: entry.matchers, filepath });
       }
     }
   }
 
-  if (hydratedMiddleware.size + hydratedFunctions.size !== functionsMap.size) {
+  const rscFunctions = [...functionsMap.keys()].filter((name) =>
+    name.endsWith(".rsc")
+  );
+
+  if (
+    hydratedMiddleware.size + hydratedFunctions.size !==
+    functionsMap.size - rscFunctions.length
+  ) {
     console.error(
       "⚡️ ERROR: Could not map all functions to an entry in the manifest."
     );
